@@ -53,3 +53,38 @@ def visualize_3d_path(points_world, path_world, start_world, goal_world):
     plt.legend()
     plt.tight_layout()
     plt.show()
+
+
+def visualize_3d_cloud(points_world):
+    """
+    可视化三维点云
+    """
+    fig = plt.figure(figsize=(9, 7))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # 绘制点云
+    R_world_to_show = np.array([
+        [1, 0, 0],
+        [0, -1, 0],
+        [0, 0, -1]
+    ])
+    points_world = (R_world_to_show @ points_world.T).T
+
+    X = points_world[:, 0]
+    Y = points_world[:, 1]
+    Z = points_world[:, 2]
+    sc = ax.scatter(X, Y, Z, c=Z, cmap='viridis', s=3, alpha=0.8)
+
+    # 颜色条
+    cbar = fig.colorbar(sc, ax=ax, pad=0.1, aspect=10, shrink=0.5)
+    cbar.set_label('Z (Elevation)', rotation=15, labelpad=15)
+
+    # 轴标签
+    ax.set_xlabel('X', labelpad=12)
+    ax.set_ylabel('Y', labelpad=12)
+    ax.set_zlabel('Z', labelpad=12)
+    ax.view_init(elev=10, azim=-170)
+
+    plt.title("3D Point Cloud")
+    plt.tight_layout()
+    plt.show()

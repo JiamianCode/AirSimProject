@@ -5,6 +5,8 @@ import airsim
 import cv2
 import numpy as np
 
+from src.depth_to_point_cloud import depth_to_point_cloud
+
 
 class AirSimDroneController:
     def __init__(self, vehicle_name=""):
@@ -104,3 +106,26 @@ class AirSimDroneController:
             self.client.moveToPositionAsync(x, y, z, velocity=1.5, vehicle_name=self.vehicle_name).join()
             time.sleep(0.1)  # 等待片刻，确保移动平稳
         print("到达目标点")
+
+    def create_point_cloud(self):
+
+        position, orientation = self.get_drone_state()
+        yaw_start = airsim.to_eularian_angles(orientation)[2]  # 初始 Yaw 角
+        fixed_z = position.z_val  # 记录初始高度
+        all_points_world = []  # 存储初始扫描点云
+
+        print("开始原地旋转，采集点云...")
+        for i in range(4):  # 旋转 4 次，每次 90°
+            yaw_start += math.radians(90)
+            self.client.moveByRollPitchYawZAsync(0, 0, yaw_start, fixed_z, 1.5,
+                                                 vehicle_name=self.vehicle_name).join()
+            time.sleep(0.5)
+
+            # 采集图像并转换为点云
+            rgb_img, depth_img, camera_position, camera_orientation = self.get_images()
+            points_world, _ = depth_to_point_cloud(self, depth_img, camera_position, camera_orientation, max_depth=20.0)
+
+            if points_world is not None and points_world.size > 0:
+                all_points_world.append(points_world)
+
+        return np.vstack(all_points_world)
