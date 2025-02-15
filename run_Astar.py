@@ -1,7 +1,7 @@
 import numpy as np
 
 from src.a_star import AStar3D
-from src.depth_to_point_cloud import depth_to_point_cloud
+from src.point_cloud import depth_to_point_cloud
 from src.drone_control import AirSimDroneController
 from tools.landing_select import get_goal_from_click
 from tools.visualize import visualize_3d_path

@@ -82,13 +82,13 @@ def process_depth_data(client, depth_img, position, orientation, max_depth):
         [0, 1, 0]
     ])
     drone_pos = np.array([position.x_val, position.y_val, position.z_val])
-    points_body = (R_camera_to_body @ points_camera.T).T + drone_pos
+    points_body = (R_camera_to_body @ points_camera.T).T
 
     # 机体坐标系转换世界坐标系
     rot = Rotation.from_quat([orientation.x_val, orientation.y_val, orientation.z_val, orientation.w_val])
     R_body_to_world = rot.as_matrix()
 
-    points_world = (R_body_to_world @ points_body.T).T
+    points_world = (R_body_to_world @ points_body.T).T + drone_pos
 
     # 相机坐标系:东、地、北 --映射--> 无人机机体坐标系:北、东、地 --转换--> 无人机世界坐标系：北、东、地 --映射--> 可视化世界坐标系
     return points_world

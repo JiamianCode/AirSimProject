@@ -30,14 +30,14 @@ def depth_to_point_cloud(drone, depth_img, camera_position, camera_orientation, 
         [0, 1, 0]
     ])
     drone_pos = np.array([camera_position.x_val, camera_position.y_val, camera_position.z_val])
-    points_body = (R_camera_to_body @ points_camera.T).T + drone_pos
+    points_body = (R_camera_to_body @ points_camera.T).T
 
     # 机体坐标系 转换 世界坐标系
     rot = Rotation.from_quat([camera_orientation.x_val, camera_orientation.y_val,
                               camera_orientation.z_val, camera_orientation.w_val])
     R_body_to_world = rot.as_matrix()
 
-    points_world = (R_body_to_world @ points_body.T).T
+    points_world = (R_body_to_world @ points_body.T).T + drone_pos
 
     valid_indices = np.vstack([u_valid, v_valid]).T
 
