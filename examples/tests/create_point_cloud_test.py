@@ -4,8 +4,8 @@ import airsim
 import numpy as np
 
 from airsim_drone import AirSimDroneController
-from airsim_drone.controllers.point_cloud import depth_to_point_cloud
-from airsim_drone.visualization.visualize import visualize_3d_cloud
+from airsim_drone.process.depth_to_point_cloud import depth_to_point_cloud
+from examples.Astar.visualize import visualize_3d_cloud
 
 # 初始化控制器
 drone = AirSimDroneController()

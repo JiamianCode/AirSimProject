@@ -1,10 +1,9 @@
 import numpy as np
 
-from airsim_drone.controllers.point_cloud import depth_to_point_cloud
 from examples.Astar.a_star import AStar3D
-from airsim_drone import AirSimDroneController
+from airsim_drone import AirSimDroneController, depth_to_point_cloud
 from examples.Astar.landing_select import get_goal_from_click
-from airsim_drone.visualization.visualize import visualize_3d_path
+from examples.Astar.visualize import visualize_3d_path
 
 
 def main():

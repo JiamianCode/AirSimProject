@@ -1,9 +1,4 @@
-import os
-import sys
 import time
-
-sys.path.insert(1, os.path.join(sys.path[0], 'MaskDINO'))
-
 import cv2
 import numpy as np
 import torch
@@ -13,7 +8,7 @@ from detectron2.config import get_cfg
 from detectron2.data import MetadataCatalog
 from detectron2.data.detection_utils import read_image
 from detectron2.projects.deeplab import add_deeplab_config
-from maskdino import add_maskdino_config
+from MaskDINO.maskdino import add_maskdino_config
 # from MaskDINO.demo.predictor import VisualizationDemo
 from MaskDINO.demo.mypredictor import MyPredictor
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -139,11 +134,11 @@ def visualize_planes_on_image(image_path, allowed_planes, unknown_planes, output
 if __name__ == "__main__":
     # 模型路径和参数
     name = '12'
-    image_path = 'assets/UAV/images/' + name + '.jpg'
-    output_image_path = 'assets/UAV/output/' + name + '.png'
-    depth_model_path = 'depth_anything_v2_metric/checkpoints/depth_anything_v2_metric_hypersim_vitl.pth'
-    sem_seg_config_file = 'MaskDINO/configs/ade20k/semantic-segmentation/maskdino_R50_bs16_160k_steplr.yaml'
-    sem_seg_model_weights = 'MaskDINO/model/semantic_ade20k_48.7miou.pth'
+    image_path = 'G:/Code/PythonCode/UAV-V1/assets/UAV/images/' + name + '.jpg'
+    output_image_path = '../../output/' + name + '.png'
+    depth_model_path = '../../depth_anything_v2_metric/checkpoints/depth_anything_v2_metric_hypersim_vitl.pth'
+    sem_seg_config_file = '../../MaskDINO/configs/ade20k/semantic-segmentation/maskdino_R50_bs16_160k_steplr.yaml'
+    sem_seg_model_weights = '../../MaskDINO/model/semantic_ade20k_48.7miou.pth'
 
     # 初始化模型
     print("初始化开始...")

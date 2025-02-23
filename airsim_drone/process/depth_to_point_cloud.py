@@ -1,4 +1,3 @@
-# 深度图转世界坐标
 import numpy as np
 from scipy.spatial.transform import Rotation
 

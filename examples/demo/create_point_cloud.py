@@ -4,7 +4,7 @@ import airsim
 import numpy as np
 
 from airsim_drone.controllers.sensor_controller import SensorDroneController
-from airsim_drone.visualization.visualize import visualize_3d_cloud
+from examples.Astar.visualize import visualize_3d_cloud
 
 
 class AirSimDroneControllerTest(SensorDroneController):

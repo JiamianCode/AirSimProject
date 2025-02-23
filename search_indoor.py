@@ -2,7 +2,7 @@ import numpy as np
 from airsim import Vector3r
 
 from airsim_drone import AirSimDroneController
-from airsim_drone import depth_to_point_cloud
+from airsim_drone.process.depth_to_point_cloud import depth_to_point_cloud
 
 
 class Voxel:

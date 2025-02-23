@@ -1,36 +1,14 @@
-import time
-
 import airsim
-
-from main import initialize_depth_model, get_semantic_segmentation, get_depth_estimation, visualize_planes_on_image, \
-    setup_cfg
-import os
-import sys
 import time
-
-sys.path.insert(1, os.path.join(sys.path[0], 'MaskDINO'))
-
-import cv2
-import numpy as np
-import torch
-
-from depth_anything_v2_metric.depth_anything_v2.dpt import DepthAnythingV2
-from detectron2.config import get_cfg
-from detectron2.data import MetadataCatalog
-from detectron2.data.detection_utils import read_image
-from detectron2.projects.deeplab import add_deeplab_config
-from maskdino import add_maskdino_config
-# from MaskDINO.demo.predictor import VisualizationDemo
-from MaskDINO.demo.mypredictor import MyPredictor
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import step1
-import step2
+from examples.ImageProcess.image_process import initialize_depth_model, get_semantic_segmentation, \
+    get_depth_estimation, visualize_planes_on_image, setup_cfg
+from examples.ImageProcess import step1, step2
 
-
-depth_model_path = 'depth_anything_v2_metric/checkpoints/depth_anything_v2_metric_hypersim_vitl.pth'
-sem_seg_config_file = 'MaskDINO/configs/ade20k/semantic-segmentation/maskdino_R50_bs16_160k_steplr.yaml'
-sem_seg_model_weights = 'MaskDINO/model/semantic_ade20k_48.7miou.pth'
+depth_model_path = '../../depth_anything_v2_metric/checkpoints/depth_anything_v2_metric_hypersim_vitl.pth'
+sem_seg_config_file = '../../MaskDINO/configs/ade20k/semantic-segmentation/maskdino_R50_bs16_160k_steplr.yaml'
+sem_seg_model_weights = '../../MaskDINO/model/semantic_ade20k_48.7miou.pth'
 
 # 初始化模型
 print("初始化开始...")
@@ -56,18 +34,18 @@ client.armDisarm(True)
 client.takeoffAsync().join()
 
 # 飞行
-client.moveToZAsync(-1.5, 1).join()  # 飞到3m高
+client.moveToZAsync(-1.5, 1).join()
 
 
 response = client.simGetImage("front_center", airsim.ImageType.Scene)
-f = open('test/in.png', 'wb')
+f = open('../../output/in.png', 'wb')
 f.write(response)
 f.close()
 
-image_path = 'test/in.png'
-output_image_path = 'test/out.png'
+image_path = '../../output/in.png'
+output_image_path = '../../output/out.png'
 
-
+print('start process')
 # 使用并行计算语义分割和深度估计
 with ThreadPoolExecutor() as executor:
     futures = {

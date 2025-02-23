@@ -6,7 +6,7 @@ import numpy as np
 
 
 from .base_controller import BaseDroneController
-from .point_cloud import depth_to_point_cloud
+from airsim_drone.process.depth_to_point_cloud import depth_to_point_cloud
 
 
 class SensorDroneController(BaseDroneController):

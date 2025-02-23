@@ -1,5 +1,5 @@
 from airsim_drone import AirSimDroneController
-from airsim_drone.visualization.visualize import visualize_3d_cloud
+from examples.Astar.visualize import visualize_3d_cloud
 
 
 
