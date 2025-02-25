@@ -2,11 +2,11 @@ import airsim
 
 
 class BaseDroneController:
-    def __init__(self, vehicle_name=""):
+    def __init__(self, ip="", vehicle_name=""):
         """
         初始化无人机控制器
         """
-        self.client = airsim.MultirotorClient()
+        self.client = airsim.MultirotorClient(ip)
         self.vehicle_name = vehicle_name
         self.client.confirmConnection()
         self.client.enableApiControl(True, self.vehicle_name)

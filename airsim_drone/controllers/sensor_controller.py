@@ -4,14 +4,13 @@ import airsim
 import cv2
 import numpy as np
 
-
 from .base_controller import BaseDroneController
 from airsim_drone.process.depth_to_point_cloud import depth_to_point_cloud
 
 
 class SensorDroneController(BaseDroneController):
-    def __init__(self, vehicle_name=""):
-        super().__init__(vehicle_name)
+    def __init__(self, ip="", vehicle_name=""):
+        super().__init__(ip, vehicle_name)
         self.K = None
         self.get_image()
         print('camera is normal')
