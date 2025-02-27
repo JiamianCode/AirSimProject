@@ -29,9 +29,3 @@ class LabelManager:
                     if self.id_to_label[tuple(object_id)] != label:
                         print(f"Warning: Inconsistent label for ID {object_id}, skipping.")
                     # 如果 ID 对应了不同的标签，则跳过
-
-    def get_label_by_id(self, object_id):
-        """
-        根据物体 ID 查询标签
-        """
-        return self.id_to_label.get(tuple(object_id), None)     # 查不到返回None，也可以是别的类型例如str

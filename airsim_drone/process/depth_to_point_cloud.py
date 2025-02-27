@@ -43,5 +43,5 @@ def depth_to_point_cloud(drone, depth_img, camera_position, camera_orientation, 
     print(f"点云数量: {len(points_world)}")
 
     # 相机坐标系:东、地、北 --映射--> 无人机机体坐标系:北、东、地 --转换--> 无人机世界坐标系：北、东、地
-    # 可以进一步在可视化时( --映射--> 可视化世界坐标系)
+    # 此时z轴向下，可以进一步在可视化时( --映射--> 可视化世界坐标系)，也可以修改可视化的观察视角
     return points_world, valid_indices
