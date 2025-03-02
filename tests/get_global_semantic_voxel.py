@@ -5,13 +5,44 @@ import numpy as np
 
 from examples.GetSemanticVoxel.voxel_grid import VoxelGridManager
 from airsim_drone import LabelManager, SensorDroneController
+from tests.AStarPathfinder import AStarPathfinder
+from tests.pid_path_follower import PIDPathFollower
 
 
 class AirSimDroneControllerTest(SensorDroneController):
     def __init__(self):
         # 初始化体素网格管理器
         super().__init__()
-        self.manager = VoxelGridManager(voxel_size=0.1)
+        self.voxel_manager = VoxelGridManager(voxel_size=0.1)
+        self.astar_planner = AStarPathfinder(resolution=0.1, safety_margin=0.2)  # 自定义 A* 规划器
+        self.label_manager = LabelManager('../airsim_drone/utils/object_labels.csv')
+
+        self.path_follower = PIDPathFollower(self.client)
+
+    def create_occupancy_grid(self):
+        """
+        从 VoxelGridManager 生成占用地图
+        """
+        self.astar_planner.set_occupancy_grid(self.voxel_manager)
+        print("占用栅格地图已建立")
+
+    def navigate_with_astar(self, start, goal):
+        """
+        使用 A* 进行路径规划并导航
+        """
+        self.create_occupancy_grid()  # 生成占用地图
+        path = self.astar_planner.search(start, goal)  # 规划路径
+
+        if path is None:
+            print("A* 规划失败，无法到达目标点")
+            return
+
+        print(f"开始沿着路径移动 ({len(path)} 个点)")
+
+        # 优化路径并沿之移动
+        self.path_follower.move_along_path(path, use_optimization=True)
+
+        print("A* 导航完成，成功到达目标")
 
     def can_move_forward(self, forward_distance):
         """根据网格判断是否可以向前飞行指定距离，考虑安全距离"""
@@ -33,7 +64,7 @@ class AirSimDroneControllerTest(SensorDroneController):
         )
 
         # 获取路径上各体素的网格（这里假设是一个简单的路径，沿直线插值）
-        num_steps = int(forward_distance / self.manager.global_voxel_grid.voxel_size)  # 计算沿着路径的步数
+        num_steps = int(forward_distance / self.voxel_manager.global_voxel_grid.voxel_size)  # 计算沿着路径的步数
         path_voxels = []
 
         for step in range(1, num_steps + 1):
@@ -43,13 +74,13 @@ class AirSimDroneControllerTest(SensorDroneController):
                 current_position.y_val + step * forward_vector.y_val / num_steps,
                 current_position.z_val + step * forward_vector.z_val / num_steps
             ])
-            voxel_key = self.manager.global_voxel_grid.get_voxel_key(interpolated_position)
+            voxel_key = self.voxel_manager.global_voxel_grid.get_voxel_key(interpolated_position)
             path_voxels.append(voxel_key)
 
         # 检查路径上的每个体素是否有障碍物并考虑安全距离
         for voxel_key in path_voxels:
-            if voxel_key in self.manager.global_voxel_grid.grid:
-                voxel = self.manager.global_voxel_grid.grid[voxel_key]
+            if voxel_key in self.voxel_manager.global_voxel_grid.grid:
+                voxel = self.voxel_manager.global_voxel_grid.grid[voxel_key]
                 # 如果该体素属于障碍物网格（假设障碍物为point_count > 0）
                 if voxel.point_count > 0:
                     # 判断距离障碍物的距离，如果小于安全距离则不能前进
@@ -110,8 +141,8 @@ class AirSimDroneControllerTest(SensorDroneController):
             # 获取点云数据
             points, valid_indices = self.get_point_cloud(depth_img, camera_position, camera_orientation)
             # 创建局部体素网格并合并到全局，获取网格变化量
-            grid_change = self.manager.create_and_merge_local_map(points, valid_indices, candidate_labels,
-                                                                  semantic_img, label_manager)
+            grid_change = self.voxel_manager.create_and_merge_local_map(points, valid_indices, candidate_labels,
+                                                                        semantic_img, self.label_manager)
 
             # 判断网格变化量是否小于阈值，若小于则停止探索
             if grid_change < threshold and grid_change == last_grid_change:
@@ -141,8 +172,6 @@ class AirSimDroneControllerTest(SensorDroneController):
                 step_count = 0  # 重置步数
 
 
-# 初始化标签管理器
-label_manager = LabelManager('../airsim_drone/utils/object_labels.csv')  # 标签文件路径
 # 候选语义标签
 candidate_labels = ['floor', 'table', 'chair', 'carpet']
 
@@ -153,11 +182,18 @@ drone = AirSimDroneControllerTest()
 drone.takeoff(flight_height=1.5)
 
 # 开始环境探索
-print("开始环境探索")
-drone.explore(threshold=100, forward_distance=2.0, rotation_angle=math.pi / 2)
+# print("开始环境探索")
+# drone.explore(threshold=100, forward_distance=2.0, rotation_angle=math.pi / 2)
 
 # 可视化全局体素网格
-drone.manager.visualize(True)
+# drone.voxel_manager.visualize(True)
+
+start_pos = (0, 0, -1.5)  # 无人机当前坐标
+goal_pos = (7, -1, -1.5)  # 目标坐标
+drone.navigate_with_astar(start_pos, goal_pos)  # 执行 A* 避障导航
+drone.land_and_release()  # 降落
+
+print(drone.get_drone_state())
 
 # 无人机降落
 drone.land_and_release()
