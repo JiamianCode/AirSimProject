@@ -17,21 +17,22 @@ class AirSimDroneControllerTest(SensorDroneController):
             airsim.ImageRequest(camera_name, airsim.ImageType.Segmentation, False, False),
         ], vehicle_name=self.vehicle_name)
 
-        img_bgr_resp = responses[0]
-        img_bgr = np.frombuffer(img_bgr_resp.image_data_uint8, dtype=np.uint8).reshape(
-            img_bgr_resp.height, img_bgr_resp.width, 3
+        img_seg_resp = responses[0]
+        img_seg = np.frombuffer(img_seg_resp.image_data_uint8, dtype=np.uint8).reshape(
+            img_seg_resp.height, img_seg_resp.width, 3
         )
 
-        img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+        # 多此一举，删去
+        # img_seg = cv2.cvtColor(img_seg, cv2.COLOR_BGR2RGB)
 
         '''
         # 在图像上显示物体ID
-        h, w, _ = img_rgb.shape
+        h, w, _ = img_seg.shape
         object_ids = set()
         for i in range(h):
             for j in range(w):
                 # 获取当前像素的物体ID（每个像素的值即为对应物体的ID）
-                object_id = tuple(img_bgr[i, j])
+                object_id = tuple(img_seg[i, j])
                 object_ids.add(object_id)  # 将物体 ID 添加到集合中（自动去重）
     
         print(len(object_ids))
@@ -44,24 +45,24 @@ class AirSimDroneControllerTest(SensorDroneController):
         ]]
     
         # 创建一个空白图像，默认设置为黑色（空区域）
-        output_img = np.zeros_like(img_rgb)
+        output_img = np.zeros_like(img_seg)
     
         # 只保留目标 ID 的区域，其余区域为黑色
-        for i in range(img_rgb.shape[0]):  # 遍历图像的每一行
-            for j in range(img_rgb.shape[1]):  # 遍历图像的每一列
+        for i in range(img_seg.shape[0]):  # 遍历图像的每一行
+            for j in range(img_seg.shape[1]):  # 遍历图像的每一列
                 # 获取当前像素的物体 ID
-                object_id = tuple(img_bgr[i, j])
+                object_id = tuple(img_seg[i, j])
     
                 # 如果该像素的 ID 等于目标 ID，则保留颜色，否则设置为空（黑色）
                 if object_id in target_id:
-                    output_img[i, j] = img_rgb[i, j]
+                    output_img[i, j] = img_seg[i, j]
                 else:
                     output_img[i, j] = [0, 0, 0]  # 设置为空，黑色
         '''
 
         # 获取语义分割结果
         # 每个像素的值表示该位置的类别标签
-        return img_rgb, img_bgr_resp.camera_position, img_bgr_resp.camera_orientation
+        return img_seg, img_seg_resp.camera_position, img_seg_resp.camera_orientation
 
 
 # 用于保存物体ID和对应字符串的列表
@@ -113,7 +114,7 @@ cv2.waitKey(0)
 cv2.destroyAllWindows()
 
 # 将结果保存到 CSV 文件
-with open('object_labels.csv', mode='w', newline='') as file:
+with open('../output/object_labels.csv', mode='w', newline='') as file:
     writer = csv.writer(file)
     writer.writerow(["Object ID", "Label"])  # 写入标题
     for obj_id, label in id_string_list:

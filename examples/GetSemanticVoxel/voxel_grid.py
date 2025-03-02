@@ -102,10 +102,15 @@ class VoxelGridManager:
             points, valid_indices, candidate_labels, semantic_img, label_manager
         )
 
+        # 统计障碍物网格和实例网格的增加数量
+        obstacle_count = 0
+        instance_count = 0
+
         # 合并局部体素网格到全局体素网格
         for voxel_key, voxel in local_voxel_grid.grid.items():
             if voxel_key not in self.global_voxel_grid.grid:
                 self.global_voxel_grid.grid[voxel_key] = voxel
+                obstacle_count += 1  # 增加的体素是障碍物
             else:
                 self.global_voxel_grid.grid[voxel_key].point_count += voxel.point_count
 
@@ -113,12 +118,17 @@ class VoxelGridManager:
         for label, local_instance_grid in local_instance_grids.items():
             if label not in self.global_instance_grids:
                 self.global_instance_grids[label] = local_instance_grid
+                instance_count += 1  # 新实例网格增加
             else:
                 self.global_instance_grids[label].grid.update(local_instance_grid.grid)
                 self.global_instance_grids[label].points.extend(local_instance_grid.points)
 
-    def visualize(self):
-        """可视化全局体素网格"""
+        # 计算网格变化量
+        grid_change = obstacle_count + instance_count
+        return grid_change
+
+    def visualize(self, remove_top=False):
+        """可视化全局体素网格，支持去顶操作"""
         occupied_indices = np.array(list(self.global_voxel_grid.grid.keys()))
         if occupied_indices.shape[0] == 0:
             print("无可视化数据：体素网格为空")
@@ -126,6 +136,23 @@ class VoxelGridManager:
 
         # 为每个体素初始化颜色，默认是灰色
         colors = np.full((occupied_indices.shape[0], 3), [128, 128, 128], dtype=np.uint8)  # 默认所有体素为灰色
+
+        # 如果 remove_top 为 True，进行去顶操作
+        if remove_top:
+            # 获取所有体素点的 z 值
+            z_values = occupied_indices[:, 2] * self.global_voxel_grid.voxel_size + self.global_origin[2]
+
+            # 计算 z_min 和 z_max
+            z_min = np.min(z_values)
+            z_max = np.max(z_values)
+
+            # 计算去顶的高度范围 (从 z_max 开始，保留 75% 的高度)
+            z_min_cutoff = z_max - 0.75 * (z_max - z_min)  # 保留 80% 的高度，去掉顶部 20%
+
+            # 只保留在此范围内的点
+            valid_indices = z_values >= z_min_cutoff
+            occupied_indices = occupied_indices[valid_indices]
+            colors = colors[valid_indices]  # 保证颜色数组与筛选后的点云一致
 
         # 遍历实例，首先可视化实例的体素
         for instance_grid in self.global_instance_grids.values():

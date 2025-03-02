@@ -58,41 +58,28 @@ class SensorDroneController(BaseDroneController):
 
         return img_rgb, camera_position, camera_orientation
 
-    def get_images(self, camera_name="front_center"):
+    def get_depth_and_semantic(self, camera_name="front_center"):
         """
-        统一获取 RGB 图像和深度图，以及相机的位置和姿态
+        统一获取 深度图 和 语义分割图像，以及相机的位置和姿态
         """
+        # 请求深度图像和语义分割图像
         responses = self.client.simGetImages([
-            airsim.ImageRequest(camera_name, airsim.ImageType.Scene, False, False),
-            airsim.ImageRequest(camera_name, airsim.ImageType.DepthPlanar, True, False)
+            airsim.ImageRequest(camera_name, airsim.ImageType.DepthPlanar, True, False),
+            airsim.ImageRequest(camera_name, airsim.ImageType.Segmentation, False, False)
         ], vehicle_name=self.vehicle_name)
 
-        if len(responses) < 2:
-            raise RuntimeError("无法同时获取 RGB 和 Depth 图像")
+        img_depth_resp = responses[0]
+        img_seg_resp = responses[1]
 
-        img_bgr_resp = responses[0]
-        img_depth_resp = responses[1]
-
-        img_bgr = np.frombuffer(img_bgr_resp.image_data_uint8, dtype=np.uint8).reshape(img_bgr_resp.height,
-                                                                                       img_bgr_resp.width, 3)
-        depth_img = np.array(img_depth_resp.image_data_float, dtype=np.float32).reshape(img_depth_resp.height,
+        img_seg = np.frombuffer(img_seg_resp.image_data_uint8, dtype=np.uint8).reshape(img_seg_resp.height,
+                                                                                       img_seg_resp.width, 3)
+        img_depth = np.array(img_depth_resp.image_data_float, dtype=np.float32).reshape(img_depth_resp.height,
                                                                                         img_depth_resp.width)
 
-        img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)  # BGR到RGB的转换
+        camera_position = img_seg_resp.camera_position
+        camera_orientation = img_seg_resp.camera_orientation
 
-        # 获取相机的全局位置和姿态信息
-        camera_position = img_bgr_resp.camera_position
-        camera_orientation = img_bgr_resp.camera_orientation
-
-        return img_rgb, depth_img, camera_position, camera_orientation
-
-    def get_image_and_point_could(self):
-        """
-        获取深度图并生成点云
-        """
-        img_rgb, depth_img, camera_position, camera_orientation = self.get_images()
-        points, valid_indices = depth_to_point_cloud(self, depth_img, camera_position, camera_orientation)
-        return img_rgb, points, valid_indices
+        return img_seg, img_depth, camera_position, camera_orientation
 
     def get_point_cloud(self, depth, camera_position, camera_orientation):
         """
