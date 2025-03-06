@@ -2,7 +2,7 @@ import airsim
 import time
 import math
 
-from tests.path_optimizer import PathOptimizer
+from airsim_drone.planning.path_optimizer import PathOptimizer
 
 
 class PIDController:

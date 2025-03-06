@@ -75,6 +75,7 @@ drone = AirSimDroneControllerTest()
 drone.takeoff(flight_height=1.5)
 
 semantic_img, camera_position, camera_orientation = drone.get_semantic_segmentation()
+cv2.imwrite("../../../output/Semantic.png", semantic_img)
 
 
 # 定义鼠标回调函数，用于处理鼠标点击事件
@@ -114,7 +115,7 @@ cv2.waitKey(0)
 cv2.destroyAllWindows()
 
 # 将结果保存到 CSV 文件
-with open('../output/object_labels.csv', mode='w', newline='') as file:
+with open('../../../output/object_labels.csv', mode='w', newline='') as file:
     writer = csv.writer(file)
     writer.writerow(["Object ID", "Label"])  # 写入标题
     for obj_id, label in id_string_list:

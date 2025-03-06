@@ -2,8 +2,9 @@ import math
 import cv2
 import numpy as np
 
+from examples.GetSemanticVoxel.LabelManager import LabelManager
 from examples.GetSemanticVoxel.voxel_grid import VoxelGridManager
-from airsim_drone import SensorDroneController, LabelManager
+from airsim_drone import SensorDroneController
 
 
 class AirSimDroneControllerTest(SensorDroneController):
@@ -20,8 +21,7 @@ class AirSimDroneControllerTest(SensorDroneController):
     # 可视化掩码的函数
     def visualize_mask_on_image(self, semantic_img, label_manager, candidate_labels):
         # 获取原图
-        img_rgb, _, _ = self.get_image()
-        img_rgb = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
+        img_bgr, _, _ = self.get_image()
 
         # 遍历每个候选标签
         for label in candidate_labels:
@@ -36,22 +36,22 @@ class AirSimDroneControllerTest(SensorDroneController):
                 color = tuple(object_id)  # 使用 object_id 直接作为 RGB 颜色
 
                 # 创建与原图大小相同的空图像
-                mask_colored = np.zeros_like(img_rgb)
+                mask_colored = np.zeros_like(img_bgr)
                 mask_colored[mask == 255] = color  # 只有掩码区域才会被赋予颜色
 
                 # 透明叠加掩码到原图，透明度设置为 0.5
-                img_rgb = cv2.addWeighted(img_rgb, 1.0, mask_colored, 0.5, 0)
+                img_bgr = cv2.addWeighted(img_bgr, 1.0, mask_colored, 0.5, 0)
 
         # 显示叠加后的图像
-        cv2.imshow("Semantic Mask Visualization", img_rgb)
-        cv2.imwrite("../../output/SemanticMask.png", img_rgb)
+        cv2.imshow("Semantic Mask Visualization", img_bgr)
+        cv2.imwrite("../../output/SemanticMask.png", img_bgr)
         # 等待用户按键退出
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
 
 # 初始化标签管理器
-label_manager = LabelManager('../../airsim_drone/utils/object_labels.csv')  # 标签文件路径
+label_manager = LabelManager('object_labels.csv')  # 标签文件路径
 # 候选语义标签
 candidate_labels = ['floor', 'table', 'chair', 'carpet']
 

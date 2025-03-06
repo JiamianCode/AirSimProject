@@ -4,11 +4,14 @@ from .controllers.sensor_controller import SensorDroneController
 from .controllers.airsim_controller import AirSimDroneController
 
 from .process import depth_to_point_cloud
+from .process import ImageProcessor
 
-from .utils import LabelManager
+from .planning import PathOptimizer
+from .planning import PIDPathFollower
+from .planning import AStarPathfinder
 
 __all__ = [
     "BaseDroneController", "NavigationDroneController", "SensorDroneController", "AirSimDroneController",
-    "depth_to_point_cloud",
-    "LabelManager"
+    "depth_to_point_cloud", "ImageProcessor",
+    "PathOptimizer", "PIDPathFollower", "AStarPathfinder"
 ]

@@ -1,7 +1,5 @@
 import math
-
 import airsim
-import cv2
 import numpy as np
 
 from .base_controller import BaseDroneController
@@ -42,8 +40,6 @@ class SensorDroneController(BaseDroneController):
         img_bgr = np.frombuffer(img_bgr_resp.image_data_uint8, dtype=np.uint8).reshape(img_bgr_resp.height,
                                                                                        img_bgr_resp.width, 3)
 
-        img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)  # BGR到RGB的转换
-
         # 获取相机的全局位置和姿态信息
         camera_position = img_bgr_resp.camera_position
         camera_orientation = img_bgr_resp.camera_orientation
@@ -56,7 +52,7 @@ class SensorDroneController(BaseDroneController):
             height = img_bgr_resp.height
             self.K = self.get_intrinsic_matrix(width, height, fov)
 
-        return img_rgb, camera_position, camera_orientation
+        return img_bgr, camera_position, camera_orientation
 
     def get_depth_and_semantic(self, camera_name="front_center"):
         """

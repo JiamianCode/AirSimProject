@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.spatial import ConvexHull
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-import alphashape
+# import alphashape
 from scipy.spatial import distance
-from shapely.geometry import MultiPolygon
+# from shapely.geometry import MultiPolygon
 
 
 import sys
