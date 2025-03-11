@@ -67,7 +67,7 @@ def unknown_masks_show(unknown_masks):
         plt.show()
 
 
-def step1(metadata, predictions, min_area=5000):
+def step1(metadata, predictions, min_area):
     # 词库配置
     # 允许无人机降落的类别
     allow_list = {

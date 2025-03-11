@@ -70,17 +70,21 @@ class PathOptimizer:
         if len(path) < 4:
             return path
 
-        tck = splprep([path[:, 0], path[:, 1], path[:, 2]], s=smoothing_factor)
-        u_fine = np.linspace(0, 1, len(path) * 5)
-        smooth_path = splev(u_fine, tck)
-        return np.vstack(smooth_path).T
+        try:
+            tck, u = splprep([path[:, 0], path[:, 1], path[:, 2]], s=smoothing_factor)
+            u_fine = np.linspace(0, 1, len(path) * 5)
+            smooth_path = splev(u_fine, tck)
+            return np.vstack(smooth_path).T
+        except Exception as e:
+            print(f"平滑路径失败: {e}")
+            return path  # 如果平滑失败，则返回原始路径
 
     def optimize_path(self, path):
         """
         综合优化路径，先简化后平滑
         """
         if not path or len(path) < 2:
-            print("🚨 无法优化路径：路径为空或点数过少")
+            print("无法优化路径：路径为空或点数过少")
             return path
 
         simplified_path = self.simplify_path(path)
