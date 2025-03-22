@@ -1,13 +1,11 @@
-import torch
-import numpy as np
-from scipy.ndimage import binary_erosion
-from scipy.ndimage import label as cpu_label
-from scipy.spatial import KDTree
-import open3d as o3d
-import matplotlib.pyplot as plt
 from typing import List, Dict
 
-from examples.Astar.visualize import visualize_3d_cloud
+import matplotlib.pyplot as plt
+import numpy as np
+import open3d as o3d
+import torch
+from scipy.ndimage import binary_erosion
+from scipy.ndimage import label as cpu_label
 
 
 def visualize_planes(planes: List[Dict], plane_type: str = "Allowed"):
@@ -53,6 +51,8 @@ def visualize_planes(planes: List[Dict], plane_type: str = "Allowed"):
 
         # 显示并暂停，等待用户关闭窗口
         plt.show()
+
+
 def show_all_planes(allowed_planes, unknown_planes):
     """展示所有检测到的平面"""
     # 显示允许的平面
@@ -61,34 +61,6 @@ def show_all_planes(allowed_planes, unknown_planes):
     # 显示未知平面
     visualize_planes(unknown_planes, plane_type="Unknown")
 
-def gaussian_smoothing(points, k_neighbors, sigma):
-    """
-    对 3D 点云进行高斯平滑，使平面更加平坦，减少噪声。
-
-    参数：
-    - points: (N, 3) numpy 数组，表示点云数据
-    - k_neighbors: 每个点考虑的近邻个数
-    - sigma: 高斯核的标准差，决定平滑强度
-
-    返回：
-    - smoothed_points: (N, 3) numpy 数组，平滑后的点云
-    """
-    points_np = np.asarray(points)
-    tree = KDTree(points_np)  # 构建 KDTree 加速邻域搜索
-    smoothed_points = np.zeros_like(points_np)
-
-    for i, point in enumerate(points_np):
-        # 查找 K 近邻（包括自身）
-        distances, indices = tree.query(point, k=k_neighbors)
-
-        # 计算高斯权重
-        weights = np.exp(- (distances ** 2) / (2 * sigma ** 2))
-        weights /= np.sum(weights)  # 归一化
-
-        # 计算加权均值
-        smoothed_points[i] = np.sum(points_np[indices] * weights[:, None], axis=0)
-
-    return smoothed_points
 
 def detect_horizontal_planes(points, filter_config):
     """从点云中提取多个水平平面及其信息，并基于密度阈值筛选有效平面"""
@@ -104,9 +76,6 @@ def detect_horizontal_planes(points, filter_config):
     is_torch = isinstance(points, torch.Tensor)
     device = points.device if is_torch else 'cpu'
     points_np = points.cpu().numpy() if is_torch else np.asarray(points)
-
-    # 高斯平滑 (废弃)
-    # points_np = gaussian_smoothing(points_np, k_neighbors=200, sigma=5)
 
     remaining_indices = np.arange(len(points_np))  # 记录剩余点的全局索引
     planes = []
@@ -319,7 +288,6 @@ def preprocess_planes(voxel_manager, allowed_planes, unknown_planes, filter_conf
             u, v = filtered_valid_indices[:, 0], filtered_valid_indices[:, 1]
             current_mask[v, u] = 1
 
-
             # 计算掩码的连通区域
             labeled_mask, num_labels = cpu_label(current_mask)
             # 计算每个区域的大小
@@ -361,8 +329,10 @@ def preprocess_planes(voxel_manager, allowed_planes, unknown_planes, filter_conf
 
                 # 重新构建平面信息
                 new_plane = plane.copy()
-                new_plane["inlier_points"] = torch.from_numpy(final_points_np).to(device) if is_tensor else final_points_np
-                new_plane["valid_indices"] = torch.tensor(new_valid_indices, device=device) if is_tensor else new_valid_indices
+                new_plane["inlier_points"] = torch.from_numpy(final_points_np).to(
+                    device) if is_tensor else final_points_np
+                new_plane["valid_indices"] = torch.tensor(new_valid_indices,
+                                                          device=device) if is_tensor else new_valid_indices
                 new_plane["mask"] = torch.tensor(filtered_mask, device=device) if is_tensor else filtered_mask
                 new_plane["density"] = density
                 '''

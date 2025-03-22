@@ -2,8 +2,8 @@ import airsim
 import time
 import math
 
-from airsim_drone.planning.path_optimizer import PathOptimizer
-from airsim_drone.visualization.visualization import visualize_voxel_grid_with_path
+from ..planning.path_optimizer import PathOptimizer
+from airsim_drone.visualization.visualize_voxel_grid_with_path import visualize_voxel_grid_with_path
 
 
 class PIDController:
@@ -73,91 +73,6 @@ class PIDPathFollower:
         delta_yaw = (target_yaw - current_yaw + math.pi) % (2 * math.pi) - math.pi  # 计算最短旋转角
         return delta_yaw  # 返回旋转角度（范围 -π ~ π）
 
-    # 错误，可弃
-    def rotate_to_target_pid_old(self, target_yaw, dt=0.05, yaw_tol=math.radians(3)):
-        """
-        使用 PID 控制器旋转无人机到目标朝向
-        """
-        print(f"旋转到目标角度: {math.degrees(target_yaw):.2f}°")
-
-        self.pid_yaw.reset()
-        stable_counter = 0  # 旋转稳定计数
-        required_stable = 3  # 需要连续 5 次稳定才认为旋转完成
-
-        while True:
-            _, _, current_yaw = self.get_current_state()
-            yaw_error = self.compute_yaw_angle(current_yaw, target_yaw)
-
-            # 计算 PID 控制的旋转速度
-            yaw_rate = self.pid_yaw.compute(yaw_error, dt)
-
-            # 发送旋转指令
-            self.client.moveByVelocityAsync(
-                0, 0, 0, dt,
-                airsim.DrivetrainType.MaxDegreeOfFreedom,
-                airsim.YawMode(is_rate=True, yaw_or_rate=math.degrees(yaw_rate))
-            )
-
-            # 判断是否到达目标角度
-            if abs(yaw_error) < yaw_tol:
-                stable_counter += 1
-            else:
-                stable_counter = 0
-
-            # 确保旋转稳定
-            if stable_counter >= required_stable:
-                print(f"偏航调整完成，目标角度: {math.degrees(target_yaw):.2f}°")
-                break
-
-            time.sleep(dt)
-    # 可弃
-    def move_along_path_old(self, voxel_manager, path, dt=0.05, pos_tol=0.1, yaw_tol=math.radians(5), vel_tol=0.05,
-                        use_optimization=True, visualize=False):
-        """
-        使用 PID 控制沿路径飞行，优化终止条件
-        :param voxel_manager: 网格管理类
-        :param path: 原始路径点
-        :param dt: 控制时间步长
-        :param pos_tol: 位置误差容忍度
-        :param yaw_tol: 偏航误差容忍度
-        :param vel_tol: 速度误差容忍度
-        :param use_optimization: 是否优化路径（默认开启）
-        :param visualize: 是否可视化（默认关闭）
-        """
-        if not path or len(path) < 2:
-            print("路径为空或点数过少，无法飞行")
-            return
-
-        if use_optimization:
-            print("优化路径中...")
-            path = self.path_optimizer.optimize_path(path)
-            print(f"优化完成，路径点数: {len(path)}")
-
-        if visualize:
-            visualize_voxel_grid_with_path(voxel_manager, path)
-
-        last_yaw = None  # 记录上一个目标的朝向
-
-        for i in range(len(path)):
-            target_x, target_y, target_z = path[i]
-
-            # 计算朝向角度（目标偏航角）
-            if i < len(path) - 1:
-                next_x, next_y, _ = path[i + 1]
-                target_yaw = math.atan2(next_y - target_y, next_x - target_x)  # 计算朝向
-                last_yaw = target_yaw  # 记录当前的目标朝向
-            else:
-                target_yaw = last_yaw  # 最后一个点使用倒数第二个点的角度
-
-            print(f"目标点 {i + 1}/{len(path)} -> ({target_x:.2f}, {target_y:.2f}, {target_z:.2f}), 目标角度: {math.degrees(target_yaw):.2f}°")
-
-            # 先旋转到目标方向
-            if target_yaw is not None:
-                self.rotate_to_target_pid(target_yaw)
-
-            # 再移动到目标点
-            self.move_to_target(target_x, target_y, target_z, target_yaw, dt, pos_tol, yaw_tol, vel_tol)
-
     def rotate_to_target_pid(self, target_yaw, dt=0.05, yaw_tol=math.radians(3), alt_tol=0.05):
         """
         使用 PID 控制器旋转无人机到目标朝向，同时维持当前高度
@@ -177,7 +92,7 @@ class PIDPathFollower:
 
         # 读取当前高度
         pos, _, _ = self.get_current_state()
-        target_z = pos.z_val  # 目标高度（保持当前高度）
+        target_z = pos.z_val - alt_tol  # 目标高度（保持当前高度-允许误差）
 
         while True:
             pos, _, current_yaw = self.get_current_state()
@@ -237,7 +152,7 @@ class PIDPathFollower:
         if visualize:
             visualize_voxel_grid_with_path(voxel_manager, path)
 
-        # **计算路径总长度 S**
+        # 计算路径总长度 S
         total_length = 0
         segment_lengths = []
         for i in range(len(path) - 1):
@@ -248,7 +163,7 @@ class PIDPathFollower:
 
         print(f"路径总长度: {total_length:.2f} m")
 
-        # **确定飞行的路径长度**
+        # 确定飞行的路径长度
         if total_length > D:
             flight_length = min(d, total_length - D)  # 不能超过总长度 - D
             full_flight = False  # 仅飞行一段
@@ -258,7 +173,7 @@ class PIDPathFollower:
 
         print(f"本次飞行目标距离: {flight_length:.2f} m")
 
-        # **路径选择逻辑修正**
+        # 路径选择逻辑修正
         if full_flight:
             selected_path = path  # 直接使用完整路径，不进行截取
         else:
@@ -279,7 +194,7 @@ class PIDPathFollower:
 
         print(f"飞行路径点数: {len(selected_path)}")
 
-        # **计算当前角度**
+        # 计算当前角度
         _, _, current_yaw = self.get_current_state()
         last_yaw = None  # 记录上一个目标的朝向
 
@@ -296,13 +211,15 @@ class PIDPathFollower:
 
             yaw_error = abs(self.compute_yaw_angle(current_yaw, target_yaw))
 
-            # **如果需要转向，先旋转并返回 False**
+            # 如果需要转向，先旋转并返回 False
             if yaw_error > yaw_tolerance:
-                print(f"需要转向 {math.degrees(yaw_error):.2f}° (当前: {math.degrees(current_yaw):.2f}°, 目标: {math.degrees(target_yaw):.2f}°)，执行旋转")
+                print(f"需要转向 {math.degrees(yaw_error):.2f}° (当前: {math.degrees(current_yaw):.2f}°, "
+                      f"目标: {math.degrees(target_yaw):.2f}°)，执行旋转")
                 self.rotate_to_target_pid(target_yaw)
                 return False  # 仅完成旋转，未继续飞行
 
-            print(f"目标点 {i + 1}/{len(selected_path)} -> ({target_x:.2f}, {target_y:.2f}, {target_z:.2f}), 目标角度: {math.degrees(target_yaw):.2f}°")
+            print(f"目标点 {i + 1}/{len(selected_path)} -> ({target_x:.2f}, {target_y:.2f}, {target_z:.2f}), "
+                  f"目标角度: {math.degrees(target_yaw):.2f}°")
 
             # 先旋转到目标方向
             if target_yaw is not None:
@@ -312,7 +229,6 @@ class PIDPathFollower:
             self.move_to_target(target_x, target_y, target_z, target_yaw, dt, pos_tol, yaw_tol, vel_tol)
 
         return full_flight  # 返回是否降落完成
-
 
     def move_to_target(self, target_x, target_y, target_z, target_yaw, dt, pos_tol, yaw_tol, vel_tol):
         """
@@ -349,8 +265,8 @@ class PIDPathFollower:
             )
 
             # 目标点稳定性检查
-            pos_distance = math.sqrt(error_x**2 + error_y**2 + error_z**2)
-            vel_magnitude = math.sqrt(vel.x_val**2 + vel.y_val**2 + vel.z_val**2)
+            pos_distance = math.sqrt(error_x ** 2 + error_y ** 2 + error_z ** 2)
+            vel_magnitude = math.sqrt(vel.x_val ** 2 + vel.y_val ** 2 + vel.z_val ** 2)
 
             if pos_distance < pos_tol and abs(yaw_error) < yaw_tol and vel_magnitude < vel_tol:
                 stable_counter += 1

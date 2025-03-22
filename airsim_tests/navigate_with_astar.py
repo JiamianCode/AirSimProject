@@ -1,7 +1,8 @@
-from airsim_drone import SensorDroneController, PIDPathFollower, ImageProcessor
-from airsim_tests.aStarPathfinder import AStarPathfinder
-from airsim_tests.planning import evaluate_planes
-from airsim_tests.voxel_grid import VoxelGridManager
+import time
+
+from airsim_drone import SensorDroneController, PIDPathFollower, ImageProcessor, AStarPathfinder, select_landing_site
+from airsim_drone.utils.voxel_grid import VoxelGridManager
+from airsim_drone.visualization.visualize_planes_with_site import visualize_planes_on_image
 
 
 class AirSimDroneControllerTest(SensorDroneController):
@@ -30,41 +31,36 @@ class AirSimDroneControllerTest(SensorDroneController):
         return state
 
 
-depth_model_path = '../depth_anything_v2_metric/checkpoints/depth_anything_v2_metric_hypersim_vitl.pth'
-sem_seg_config_file = '../MaskDINO/configs/ade20k/semantic-segmentation/maskdino_R50_bs16_160k_steplr.yaml'
-sem_seg_model_weights = '../MaskDINO/model/semantic_ade20k_48.7miou.pth'
-
-processor = ImageProcessor(depth_model_path, sem_seg_config_file, sem_seg_model_weights)
-drone = AirSimDroneControllerTest(ip="172.21.74.48")
+processor = ImageProcessor()
+drone = AirSimDroneControllerTest(ip="172.21.74.24")
 # 起飞
 drone.takeoff(flight_height=1.5)
 while True:
+    print("开始获取图像、分析图像、选择落点...")
+    start_time = time.time()
     # 获取原图
     image, camera_position, camera_orientation = drone.get_image()
     # 深度估计与语义分割
     predictions, depth = processor.process_image(image)
     depth = depth * 0.74    # 根据测试，得到的较为合适的矫正系数
-    # depth = processor.sharpen_real_depth(depth, threshold=200, dilate_size=5) # 深度分层，取消，改为侵蚀
-
     # 转换点云
     points, valid_indices = drone.get_point_cloud(depth, camera_position, camera_orientation)
-
     # 使用管理类方法创建局部体素网格并合并到全局
-    drone.voxel_manager.create_and_merge_local_map(points)
-    # drone.voxel_manager.visualize()
-
+    drone.voxel_manager.create_and_merge_local_map(points, visualize=True)
     # 语义筛选和平面提取
-    allowed_planes, unknown_planes = processor.filter_and_extract_planes(drone.voxel_manager, predictions, points, valid_indices)
-    # processor.visualize_planes_on_image(image, allowed_planes, unknown_planes)
+    allowed_planes, unknown_planes, _ = processor.filter_and_extract_planes(drone.voxel_manager, predictions, points, valid_indices)
 
     drone_pos, _ = drone.get_drone_state()
     drone_pos = (drone_pos.x_val, drone_pos.y_val, drone_pos.z_val)
 
     # 从 allowed_planes 中选出落点候选坐标
-    sorted_centers_3d, sorted_centers_2d, sorted_scores = evaluate_planes(allowed_planes, drone_pos, k=1.5, visualize=False)
+    sorted_centers_3d, sorted_centers_2d, sorted_scores = select_landing_site(allowed_planes, drone_pos, k=1.5, visualize=False)
+    end_time = time.time()
+    print(f"获取图像、分析图像、选择落点完成，运行时间: {round(end_time - start_time, 2)}秒")
 
     # 可视化候选区
-    processor.visualize_planes_on_image(image, allowed_planes, unknown_planes, sorted_centers_2d, sorted_scores)
+    visualize_planes_on_image(image, allowed_planes, unknown_planes, sorted_centers_2d, sorted_scores,save=True)
+
     if sorted_centers_3d is None:
         break
 

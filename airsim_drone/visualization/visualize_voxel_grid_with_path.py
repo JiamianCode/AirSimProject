@@ -1,9 +1,12 @@
+import matplotlib
 import numpy as np
 from matplotlib import pyplot as plt
 
 
 def visualize_voxel_grid_with_path(voxel_manager, path, remove_top=True):
     """可视化体素网格（障碍物）和 路径，并可选择去顶"""
+    matplotlib.use('TkAgg')
+
     # 获取占用体素索引
     occupied_indices = np.array(list(voxel_manager.global_voxel_grid.grid.keys()))
     if occupied_indices.shape[0] == 0:

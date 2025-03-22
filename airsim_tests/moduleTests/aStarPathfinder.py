@@ -1,6 +1,7 @@
 import heapq
 import numpy as np
 
+
 class AStarPathfinder:
     def __init__(self, resolution=0.1, safety_margin=0.2):
         """自定义 A* 搜索器"""
@@ -46,11 +47,11 @@ class AStarPathfinder:
         """ 运行优化版 A* 搜索算法  """
         self.set_occupancy_grid(voxel_manager)
 
-        # **如果直线路径可行，直接返回直线路径**
+        # 如果直线路径可行，直接返回直线路径
         if self.is_line_clear(start, goal):
             return [start, goal]
 
-        # **如果直线不可行，进行分段规划**
+        # 如果直线不可行，进行分段规划
         start_grid = self.world_to_grid(*start)
         goal_grid = self.world_to_grid(*goal)
 
@@ -64,7 +65,7 @@ class AStarPathfinder:
 
         print(f"A* 规划: 从 {start_grid} 到 {goal_grid}")
 
-        # **A* 初始化**
+        # A* 初始化
         open_set = [(0, start_grid)]
         heapq.heapify(open_set)
         came_from = {}
@@ -75,12 +76,12 @@ class AStarPathfinder:
             (1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)  # 六方向移动
         ]
 
-        # **A* 搜索**
+        # A* 搜索
         while open_set:
             _, current = heapq.heappop(open_set)
 
             if current == goal_grid:
-                # **路径回溯**
+                # 路径回溯
                 path = []
                 while current in came_from:
                     path.append(self.grid_to_world(*current))
@@ -88,7 +89,7 @@ class AStarPathfinder:
                 path.append(start)  # 加入起点
                 path.reverse()
 
-                # **尝试连接直线段**
+                # 尝试连接直线段
                 optimized_path = [path[0]]
                 for i in range(1, len(path)):
                     if self.is_line_clear(optimized_path[-1], path[i]):

@@ -1,14 +1,17 @@
 import math
+import time
+
 import airsim
 import numpy as np
 
 from .base_controller import BaseDroneController
-from airsim_drone.process.depth_to_point_cloud import depth_to_point_cloud
+from ..process.depth_to_point_cloud import depth_to_point_cloud
 
 
 class SensorDroneController(BaseDroneController):
     def __init__(self, ip="", vehicle_name=""):
         super().__init__(ip, vehicle_name)
+        self.fov = None
         self.K = None
         self.get_image()
         print('camera is normal')
@@ -31,6 +34,9 @@ class SensorDroneController(BaseDroneController):
         """
         获取 RGB 图像，检查并初始化相机矩阵
         """
+        print("开始获取图像...")
+        start_time = time.time()
+
         responses = self.client.simGetImages([
             airsim.ImageRequest(camera_name, airsim.ImageType.Scene, False, False),
         ], vehicle_name=self.vehicle_name)
@@ -50,7 +56,11 @@ class SensorDroneController(BaseDroneController):
             fov = self.client.simGetCameraInfo(camera_name, vehicle_name=self.vehicle_name).fov
             width = img_bgr_resp.width
             height = img_bgr_resp.height
+            self.fov = fov
             self.K = self.get_intrinsic_matrix(width, height, fov)
+
+        end_time = time.time()
+        print(f"获取图像完成，运行时间: {round(end_time - start_time, 2)}秒")
 
         return img_bgr, camera_position, camera_orientation
 
